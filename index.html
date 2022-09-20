@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div>
+        <p>Category: <select id="category_list"></select></p>
+        <p><button id="filter_button">Filter</button></p>
+    </div>
+
+    <div id="posts"></div>
+
+    <script>
+        const divPosts = document.querySelector("#posts")
+
+        const lstCategories = document.querySelector("#category_list")
+        const btnFilter = document.querySelector("#filter_button")
+
+        const xhr = new XMLHttpRequest()
+
+        function display_posts(xhr) {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                const posts = JSON.parse(xhr.responseText)
+                divPosts.innerHTML = ""
+                for (let post of posts) {
+                    divPosts.innerHTML += `
+                            <h1>${post.title}</h1>
+                            <p><b>Author:</b> ${post.author}</p>
+                            <p><b>Published on:</b> ${post.date}</p>
+                            <p><b>Category:</b> 
+                                <a href="#" data-category="${post.category}">${post.category}</a>
+                            </p>
+                            <div>
+                                ${post.content}    
+                            </div>
+                            <hr />
+                    `
+                }
+            }
+
+            if (xhr.readyState == 4 && xhr.status > 400) {
+                divPosts.innerHTML = `
+                            <h1>Error: ${xhr.status}</h1>
+                            <h3>${xhr.statusText}</h3>
+                `
+            }
+        }
+
+        xhr.onload = () => display_posts(xhr)
+
+        xhr.open("GET", "http://127.0.0.1:3000")
+        xhr.send()
+
+        const xhr_select_category = new XMLHttpRequest()
+
+        xhr_select_category.onload = () => {
+            const categories = JSON.parse(xhr_select_category.responseText)
+
+            lstCategories.innerHTML = `<option selected disabled>--- Choose ---</option>`
+            for (let category of categories) {
+                lstCategories.innerHTML += `<option value="${category}">${category}</option>`
+            }
+
+        }
+
+        xhr_select_category.open("GET", "http://127.0.0.1:3000/categories")
+        xhr_select_category.send()
+
+
+        document.body.onclick = (e) => {
+            if (e.target.hasAttribute("data-category")) {
+
+                const criteria = { "category": e.target.getAttribute("data-category") }
+
+                xhr_category = new XMLHttpRequest()
+
+                xhr_category.onload = () => {
+                    display_posts(xhr_category)
+
+                    divPosts.innerHTML = `<p>Filter: <a href="#" data-reload="1">Clear: ${criteria.category}</a></p>`
+                        + divPosts.innerHTML
+                }
+
+                xhr_category.open("POST", "http://127.0.0.1:3000/posts-for-category")
+                xhr_category.setRequestHeader("Content-Type", "application/json")
+                xhr_category.send(JSON.stringify(criteria))
+            }
+            if (e.target.hasAttribute("data-reload")) {
+                const xhr = new XMLHttpRequest()
+                xhr.onload = () => display_posts(xhr)
+
+                xhr.open("GET", "http://127.0.0.1:3000")
+                xhr.send()
+            }
+
+        }
+
+        btnFilter.onclick = (e) => {
+            const criteria = { "category": lstCategories.value }
+
+            xhr_category = new XMLHttpRequest()
+
+            xhr_category.onload = () => {
+                display_posts(xhr_category)
+
+                divPosts.innerHTML = `<p>Filter: <a href="#" data-reload="1">Clear: ${criteria.category}</a></p>`
+                    + divPosts.innerHTML
+            }
+
+            xhr_category.open("POST", "http://127.0.0.1:3000/posts-for-category")
+            xhr_category.setRequestHeader("Content-Type", "application/json")
+            xhr_category.send(JSON.stringify(criteria))
+
+        }
+
+    </script>
+</body>
+
+</html>
